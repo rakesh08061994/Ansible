@@ -1,0 +1,85 @@
+---
+- name: Check Pre-Configuration for ansible
+  hosts: www.mh1.com
+  gather_facts: true
+  vars:
+    - username: ansible_user
+    - user_password: password
+
+  tasks:
+    - name: Setup local repository on machine
+      blockinfile:
+        path: /etc/yum.repos.d/redhat.repo
+        block: |
+          [AppStream]
+          name = Online_AppStream
+          gpgcheck = 0
+          enabled = 1
+          baseurl = http://mirror.stream.centos.org/9-stream/AppStream/x86_64/os/
+
+          [BaseOS]
+          name = online_BaseOS
+          gpgcheck = 0
+          enabled = 1
+          baseurl = http://mirror.stream.centos.org/9-stream/BaseOS/x86_64/os/
+      when: 
+        - ansible_facts.discovered_interpreter_python is not defined
+        - ansible_facts.distribution == 'RedHat'
+        - ansible_facts.distribution_major_version == '9'
+
+          #--------------------------------------------------------------------------------
+
+    - name: Enable codeready-builder-for-rhel repository
+      command: subscription-manager repos --enable codeready-builder-for-rhel-9-$(arch)-rpms
+      when:
+        - ansible_facts['distribution'] == 'RedHat'
+        - ansible_facts['distribution_major_version'] | int >= 9
+      ignore_errors: yes
+
+    - name: Install EPEL repository package
+      command: dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+      when:
+        - ansible_facts['distribution'] == 'RedHat'
+        - ansible_facts['distribution_major_version'] | int >= 9
+
+        #-------------------------------------------------------------------------------------  
+  
+    - name: Install Python3 and python3-pip
+      package:
+        name: "{{ item }}"
+        state: latest
+      with_items:
+        - python3
+        - python3-pip
+      when: ansible_facts.discovered_interpreter_python is not defined
+
+        #-----------------------------------------------------------------------------------
+
+    - name: create user "{{ username }}"
+      user:
+        name: "{{ username }}"
+        password: "{{ user_password | password_hash('sha512') }}" 
+        update_password: always
+ 
+    - name: create file ansible_user at /etc/sudoers.d/user
+      file:
+        path: /etc/sudoers.d/user
+        state: touch
+          
+    - name: give sudoers access to user "{{ username }}"
+      copy:
+        content: "'{{ username }}' ALL=(ALL)   ALL"
+        dest: /etc/sudoers.d/user
+      
+        #------------------------------------------------------------------------------------
+  
+    - name: Install ansible, ansible-core, ansible-collection-community-general
+      dnf:
+        name: "{{ item }}"
+        state: latest
+      with_items:
+        -  ansible
+        -  ansible-core
+        -  ansible-collection-community-general
+
+          #---------------------------------------------------------------------------------
