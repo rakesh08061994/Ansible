@@ -1,0 +1,15 @@
+##This is local repo for rhel 9 stream
+
+[AppStream]
+name = Online_AppStream
+gpgcheck = 0
+enabled = 1
+baseurl = http://mirror.stream.centos.org/9-stream/AppStream/x86_64/os/
+
+
+[BaseOS]
+name = online_BaseOS
+gpgcheck = 0
+enabled = 1
+baseurl = http://mirror.stream.centos.org/9-stream/BaseOS/x86_64/os/
+
