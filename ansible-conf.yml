@@ -1,6 +1,7 @@
 ---
 - name: Check Pre-Configuration for ansible
   hosts: all
+  ignore_errors: yes
   vars_files:
     - credentials.yml
 
@@ -20,29 +21,29 @@
           gpgcheck = 0
           enabled = 1
           baseurl = http://mirror.stream.centos.org/9-stream/BaseOS/x86_64/os/
-      when: 
+      when:
         - ansible_facts.distribution == 'RedHat'
         - ansible_facts.distribution_major_version == '9'
 
-          #--------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
     - name: Enable codeready-builder-for-rhel repository
-      command: subscription-manager repos --enable codeready-builder-for-rhel-9-$(arch)-rpms
+      command: subscription-manager repos --enable=codeready-builder-for-rhel-9-$(arch)-rpms
       when:
         - ansible_facts.distribution == 'RedHat'
         - ansible_facts.distribution_major_version | int >= 9
       ignore_errors: yes
-         
-        #--------------------------------------------------------------------------------
-   
+
+    # ------------------------------------------------------------------------------
+
     - name: Install EPEL repository package
       command: dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
       when:
         - ansible_facts['distribution'] == 'RedHat'
         - ansible_facts['distribution_major_version'] | int >= 9
 
-        #-------------------------------------------------------------------------------------  
-  
+    # ------------------------------------------------------------------------------
+
     - name: Install Python3 and python3-pip
       package:
         name: "{{ item }}"
@@ -50,29 +51,29 @@
       with_items:
         - python3
         - python3-pip
-      when: 
+      when:
         - ansible_facts.discovered_interpreter_python is not defined
         - ansible_facts.distribution == 'RedHat'
 
-        #-----------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
     - name: create user "{{ username }}"
       user:
         name: "{{ username }}"
         password: "{{ password | password_hash('sha512') }}"
         createhome: yes
-        shell: /bin/bash 
+        shell: /bin/bash
         update_password: always
 
-          #----------------------------------------------------------------------------------
- 
+    # ------------------------------------------------------------------------------
+
     - name: create file ansible_user at /etc/sudoers.d/user
       file:
         path: /etc/sudoers.d/user
         state: touch
 
-          #---------------------------------------------------------------------------------         
- 
+    # ------------------------------------------------------------------------------
+
     - name: give sudoers access to user "{{ username }}"
       copy:
         content: "'{{ username }}' ALL=(ALL)   ALL"
@@ -80,7 +81,7 @@
       when:
         - ansible_facts.distribution == 'RedHat'
 
-          #---------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
     - name: give sudoers access to user {{ username }} in {{ ansible_facts.distribution }}
       copy:
@@ -89,10 +90,7 @@
       when:
         - ansible_facts.distribution == 'Ubuntu'
 
-
-
-          #---------------------------------------------------------------------------------
-
+    # ------------------------------------------------------------------------------
 
     - name: Configure LANGUAGE UTF-8 encoding in /etc/default/locale file
       blockinfile:
@@ -104,9 +102,7 @@
       when:
         - ansible_facts.distribution == 'Ubuntu'
 
-
-          #---------------------------------------------------------------------------------
-
+    # ------------------------------------------------------------------------------
 
     - name: Install Python3 and python3-pip in "{{ ansible_facts.distribution }}"
       apt:
@@ -115,40 +111,38 @@
       with_items:
         - python3-pip
         - python3
-    
       when:
         - ansible_facts.discovered_interpreter_python is not defined
         - ansible_facts.distribution == 'Ubuntu'
-          
-        #------------------------------------------------------------------------------------
-  
-    - name: Install ansible, ansible-core, ansible-collection-community-general in "{{ ansible_facts.distribution }}"
 
+    # ------------------------------------------------------------------------------
+
+    - name: Install ansible, ansible-core, ansible-collection-community-general in "{{ ansible_facts.distribution }}"
       dnf:
         name: "{{ item }}"
         state: latest
       with_items:
-        -  ansible
-        -  ansible-core
-        -  ansible-collection-community-general
+        - ansible
+        - ansible-core
+        - ansible-collection-community-general
       when:
         - ansible_facts.distribution == 'RedHat'
 
-          #---------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
     - name: Add Ansible PPA repository
       command: add-apt-repository --yes --update ppa:ansible/ansible
       become: true
       when: ansible_facts.distribution == 'Ubuntu'
 
-          #----------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
     - name: Install ansible, ansible-core, ansible-collection-community-general in "{{ ansible_facts.distribution }}"
       apt:
         update_cache: yes
       when: ansible_facts.distribution == 'Ubuntu'
 
-          #---------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
     - name: Install software-properties-common
       apt:
@@ -159,11 +153,10 @@
         - software-properties-common
       when: ansible_facts.distribution == 'Ubuntu'
 
-        #------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------
 
     - name: Install ansible, ansible-core, ansible-collection-community-general in "{{ ansible_facts.distribution }}"
       apt:
         update_cache: yes
       when: ansible_facts.distribution == 'Ubuntu'
 
-          #---------------------------------------------------------------------------------
