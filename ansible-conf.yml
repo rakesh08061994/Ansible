@@ -1,7 +1,7 @@
 ---
 - name: Check Pre-Configuration for ansible
-  hosts: all
-  ignore_errors: yes
+  hosts: www.mh3.com
+    #ignore_errors: yes
   vars_files:
     - credentials.yml
 
@@ -27,14 +27,6 @@
 
     # ------------------------------------------------------------------------------
 
-    - name: Enable codeready-builder-for-rhel repository
-      command: subscription-manager repos --enable=codeready-builder-for-rhel-9-$(arch)-rpms
-      when:
-        - ansible_facts.distribution == 'RedHat'
-        - ansible_facts.distribution_major_version | int >= 9
-      ignore_errors: yes
-
-    # ------------------------------------------------------------------------------
 
     - name: Install EPEL repository package
       command: dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
@@ -76,7 +68,7 @@
 
     - name: give sudoers access to user "{{ username }}"
       copy:
-        content: "'{{ username }}' ALL=(ALL)   ALL"
+        content: "'{{ username }}' ALL=(ALL)   NOPASSWD:ALL"
         dest: /etc/sudoers.d/user
       when:
         - ansible_facts.distribution == 'RedHat'
@@ -85,7 +77,7 @@
 
     - name: give sudoers access to user {{ username }} in {{ ansible_facts.distribution }}
       copy:
-        content: "'{{ username }}' ALL=(ALL:ALL)   ALL"
+        content: "'{{ username }}' ALL=(ALL:ALL)   NOPASSWD:ALL"
         dest: /etc/sudoers.d/user
       when:
         - ansible_facts.distribution == 'Ubuntu'
@@ -128,35 +120,39 @@
       when:
         - ansible_facts.distribution == 'RedHat'
 
-    # ------------------------------------------------------------------------------
+     #------------------------------------------------------------------------------
 
-    - name: Add Ansible PPA repository
-      command: add-apt-repository --yes --update ppa:ansible/ansible
-      become: true
-      when: ansible_facts.distribution == 'Ubuntu'
-
-    # ------------------------------------------------------------------------------
-
-    - name: Install ansible, ansible-core, ansible-collection-community-general in "{{ ansible_facts.distribution }}"
+    - name: Update Cache for 'Ubuntu'
       apt:
         update_cache: yes
       when: ansible_facts.distribution == 'Ubuntu'
+      ignore_errors: yes
 
-    # ------------------------------------------------------------------------------
+     
+        #--------------------------------------------------------------------------
+
+    - name: Add Ansible PPA repository
+      ansible.builtin.apt_repository:
+        repo: ppa:ansible/ansible
+        update_cache: yes
+      when: ansible_facts.distribution == 'Ubuntu'
+
+      # ------------------------------------------------------------------------------
 
     - name: Install software-properties-common
       apt:
-        name: "{{ item }}"
-        state: present
-      with_items:
-        - ansible
-        - software-properties-common
+        pkg:
+          - software-properties-common
+          - ansible
       when: ansible_facts.distribution == 'Ubuntu'
 
     # ------------------------------------------------------------------------------
 
-    - name: Install ansible, ansible-core, ansible-collection-community-general in "{{ ansible_facts.distribution }}"
-      apt:
-        update_cache: yes
-      when: ansible_facts.distribution == 'Ubuntu'
+    - name: check verison
+      shell:
+        cmd: ansible --version
+      register: output
 
+    - name: Congratulation message when ansible is complete comfigured and setup
+      debug:
+        msg: output.stdout
